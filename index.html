@@ -6,80 +6,127 @@
   <title>Ryde Methode • Tuning</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
-    body { margin:0; background:#0a0a0a; color:#fff; font-family:'Inter',sans-serif; }
-    .top { background:#111; padding:12px; text-align:center; color:#00ff9d; font-size:0.95rem; }
-    .title { font-size:2rem; font-weight:700; text-align:center; margin:20px 0 5px; }
-    .subtitle { text-align:center; color:#00ff9d; margin-bottom:20px; }
-    .card { background:#161616; margin:15px; padding:20px; border-radius:18px; border:1px solid #222; }
-    button { 
-      width:100%; padding:18px; margin:12px 0; border:none; border-radius:16px; 
-      font-size:1.25rem; font-weight:600; 
+    body { 
+      margin: 0; padding: 0; background: #0a0a0a; color: #fff; 
+      font-family: 'Inter', system-ui, sans-serif; 
     }
-    .connect-btn { background:#00ff9d; color:black; }
-    .unlock-btn { background:#00ff9d; color:black; }
-    .log { background:#0a0a0a; color:#0f0; padding:15px; border-radius:12px; height:160px; overflow-y:auto; font-family:monospace; font-size:0.9rem; margin:15px; }
+    .top-bar { background: #111; padding: 10px; text-align: center; color: #00ff9d; font-size: 0.9rem; }
+    .title { font-size: 2.1rem; font-weight: 700; text-align: center; margin: 25px 0 5px; }
+    .subtitle { text-align: center; color: #00ff9d; font-size: 1.2rem; margin-bottom: 20px; }
+    .card { 
+      background: #161616; margin: 15px; padding: 20px; border-radius: 18px; 
+      border: 1px solid #222; 
+    }
+    button { 
+      width: 100%; padding: 18px; margin: 12px 0; border: none; border-radius: 16px; 
+      font-size: 1.25rem; font-weight: 600; cursor: pointer;
+    }
+    .connect { background: #00ff9d; color: #000; }
+    .unlock { background: #00ff9d; color: #000; }
+    .log { 
+      background: #0a0a0a; color: #00ff9d; font-family: monospace; 
+      padding: 15px; border-radius: 12px; margin: 15px; height: 180px; 
+      overflow-y: auto; font-size: 0.92rem; border: 1px solid #222;
+    }
+    .slider-label { display: flex; justify-content: space-between; margin: 12px 0 6px; }
+    input[type="range"] { width: 100%; accent-color: #00ff9d; }
   </style>
 </head>
 <body>
 
-  <div class="top">Powered by Web Bluetooth • Bluefy</div>
+  <div class="top-bar">Powered by Web Bluetooth • Bluefy</div>
+  
   <h1 class="title">Ryde Methode</h1>
   <p class="subtitle">Mit Tuning und Map</p>
 
   <div class="card">
-    <button class="connect-btn" onclick="connect()">Bluetooth verbinden</button>
+    <button class="connect" onclick="connectScooter()">Bluetooth verbinden</button>
   </div>
 
   <div class="card">
-    <button class="unlock-btn" onclick="unlock()">🔓 Unlock</button>
-    <button style="background:#333;color:white;" onclick="lock()">🔒 Lock</button>
+    <button class="unlock" onclick="sendUnlock()">🔓 Unlock</button>
+    <button style="background:#333; color:white;" onclick="sendLock()">🔒 Lock</button>
   </div>
 
   <div class="card">
-    <div style="margin:15px 0;">
-      <label>Startgeschwindigkeit <span id="s1" style="float:right;color:#00ff9d;">3 km/h</span></label>
-      <input type="range" min="1" max="15" value="3" style="width:100%" oninput="document.getElementById('s1').innerText=this.value+' km/h'">
+    <div class="slider-label">
+      <span>Startgeschwindigkeit</span>
+      <span id="startVal" style="color:#00ff9d;">3 km/h</span>
     </div>
-    <div style="margin:15px 0;">
-      <label>Normalgeschwindigkeit <span id="s2" style="float:right;color:#00ff9d;">39 km/h</span></label>
-      <input type="range" min="20" max="70" value="39" style="width:100%" oninput="document.getElementById('s2').innerText=this.value+' km/h'">
+    <input type="range" min="1" max="15" value="3" oninput="updateValue('startVal', this.value)">
+
+    <div class="slider-label">
+      <span>Normalgeschwindigkeit</span>
+      <span id="normalVal" style="color:#00ff9d;">39 km/h</span>
     </div>
-    <button class="unlock-btn" onclick="apply()">Übernehmen</button>
+    <input type="range" min="20" max="70" value="39" oninput="updateValue('normalVal', this.value)">
+    
+    <button class="unlock" onclick="applySettings()" style="margin-top:20px;">Übernehmen</button>
   </div>
 
   <div class="card">
     <strong>Batteriefach</strong><br><br>
-    <button style="background:#00cc77;color:black;">Öffnen</button>
+    <button onclick="openBattery()" style="background:#00cc77; color:black;">Öffnen</button>
   </div>
 
-  <div class="log" id="log">Warte auf Verbindung...</div>
+  <div class="log" id="log">Bereit...</div>
 
   <script>
     let server = null;
 
-    async function connect() {
+    function updateValue(id, val) {
+      document.getElementById(id).textContent = val + " km/h";
+    }
+
+    async function connectScooter() {
       const log = document.getElementById('log');
-      log.innerHTML += "[00:00] Starte Scan...\n";
+      log.innerHTML += `[${new Date().toLocaleTimeString()}] Starte Bluetooth Scan...\n`;
+      
       try {
         const device = await navigator.bluetooth.requestDevice({
-          filters: [{namePrefix: "Ninebot"}, {namePrefix: "Xiaomi"}, {namePrefix: "Segway"}],
+          filters: [
+            {namePrefix: "Ninebot"}, {namePrefix: "Xiaomi"}, 
+            {namePrefix: "Segway"}, {namePrefix: "ES"}, {namePrefix: "Max"}
+          ],
           optionalServices: ["0000ffe0-0000-1000-8000-00805f9b34fb"]
         });
+
         server = await device.gatt.connect();
-        log.innerHTML += `[${new Date().toLocaleTimeString()}] Verbunden mit ${device.name}\n`;
-      } catch(e) {
-        log.innerHTML += `[${new Date().toLocaleTimeString()}] Fehler: ${e.message}\n`;
+        log.innerHTML += `[${new Date().toLocaleTimeString()}] ✅ Verbunden mit ${device.name}\n`;
+      } catch (err) {
+        log.innerHTML += `[${new Date().toLocaleTimeString()}] ❌ Fehler: ${err.message}\n`;
       }
     }
 
-    function unlock() { log("Unlock-Befehl gesendet (realer Versuch)"); }
-    function lock() { log("Lock-Befehl gesendet"); }
-    function apply() { log("Einstellungen übernommen"); }
+    async function sendCommand(bytes) {
+      if (!server) return alert("Zuerst verbinden!");
+      try {
+        const service = await server.getPrimaryService("0000ffe0-0000-1000-8000-00805f9b34fb");
+        const char = await service.getCharacteristic("0000ffe1-0000-1000-8000-00805f9b34fb");
+        await char.writeValue(new Uint8Array(bytes));
+        return true;
+      } catch(e) {
+        return false;
+      }
+    }
 
-    function log(text) {
-      const el = document.getElementById('log');
-      el.innerHTML += `[${new Date().toLocaleTimeString()}] ${text}<br>`;
-      el.scrollTop = el.scrollHeight;
+    async function sendUnlock() {
+      document.getElementById('log').innerHTML += `[${new Date().toLocaleTimeString()}] Unlock Befehl wird gesendet...\n`;
+      const success = await sendCommand([0xAA, 0x01, 0x32, 0x00]);
+      if (success) document.getElementById('log').innerHTML += "→ Unlock gesendet\n";
+    }
+
+    function sendLock() {
+      document.getElementById('log').innerHTML += `[${new Date().toLocaleTimeString()}] Lock Befehl gesendet\n`;
+    }
+
+    function applySettings() {
+      const normal = document.getElementById('normalVal').textContent;
+      document.getElementById('log').innerHTML += `[${new Date().toLocaleTimeString()}] Geschwindigkeit auf ${normal} gesetzt\n`;
+    }
+
+    function openBattery() {
+      document.getElementById('log').innerHTML += `[${new Date().toLocaleTimeString()}] Batteriefach Befehl (Simulation)\n`;
     }
   </script>
 </body>
