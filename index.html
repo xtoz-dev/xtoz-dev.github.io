@@ -1,106 +1,191 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="de">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>VOID TUNER • REAL v2.1</title>
+  <title>Ryde Methode • Tuning</title>
   <style>
-    body { background:#0a0a0a; color:#00ff9d; font-family: -apple-system, sans-serif; padding:15px; margin:0; }
-    .container { max-width:540px; margin:auto; }
-    h1 { text-align:center; margin:30px 0; }
-    .status { padding:20px; background:rgba(0,255,157,0.1); border:1px solid #00ff9d; border-radius:20px; text-align:center; margin:15px 0; }
-    button { width:100%; padding:18px; margin:10px 0; background:transparent; border:2px solid #00ff9d; color:#00ff9d; font-size:1.1rem; border-radius:18px; }
-    button:hover { background:#00ff9d; color:black; }
-    .danger { border-color:#ff2d55; color:#ff2d55; }
-    .log { background:#111; padding:15px; border-radius:16px; font-family:monospace; height:280px; overflow-y:auto; }
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+    
+    body {
+      margin: 0;
+      padding: 0;
+      background: #0a0a0a;
+      color: white;
+      font-family: 'Inter', system-ui, sans-serif;
+      min-height: 100vh;
+    }
+    .header {
+      padding: 15px;
+      background: #111;
+      text-align: center;
+      border-bottom: 1px solid #222;
+    }
+    .title {
+      font-size: 1.8rem;
+      font-weight: 700;
+      margin: 10px 0;
+    }
+    .subtitle {
+      color: #00ff9d;
+      font-size: 1.1rem;
+    }
+    .connect-btn {
+      background: #00ff9d;
+      color: black;
+      padding: 18px;
+      font-size: 1.3rem;
+      font-weight: 600;
+      border: none;
+      border-radius: 16px;
+      width: 90%;
+      margin: 20px auto;
+      display: block;
+    }
+    .card {
+      background: #1a1a1a;
+      margin: 15px;
+      border-radius: 18px;
+      padding: 18px;
+      border: 1px solid #333;
+    }
+    .unlock-btn {
+      background: #00ff9d;
+      color: black;
+      padding: 16px;
+      font-size: 1.2rem;
+      font-weight: 600;
+      border-radius: 14px;
+      width: 100%;
+      margin: 10px 0;
+    }
+    .lock-btn {
+      background: #333;
+      color: white;
+      padding: 16px;
+      font-size: 1.2rem;
+      border-radius: 14px;
+      width: 100%;
+    }
+    .slider-container {
+      margin: 20px 0;
+    }
+    .slider-label {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 8px;
+      font-size: 1rem;
+    }
+    input[type="range"] {
+      width: 100%;
+      accent-color: #00ff9d;
+    }
+    .value {
+      color: #00ff9d;
+      font-weight: 600;
+    }
+    .map-placeholder {
+      height: 220px;
+      background: linear-gradient(#112233, #001122);
+      border-radius: 16px;
+      margin: 15px;
+      position: relative;
+      overflow: hidden;
+    }
+    .map-placeholder::after {
+      content: "🗺️ Karte mit nahen Scootern (Ryde, Dott...)";
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      color: #00ff9d;
+      font-size: 1.1rem;
+      text-align: center;
+    }
   </style>
 </head>
 <body>
-  <div class="container">
-    <h1>VOID TUNER • REAL</h1>
-    <div class="status" id="status">Select model and connect</div>
 
-    <select id="model" style="width:100%; padding:15px; background:#111; color:#00ff9d; border:1px solid #333; border-radius:12px; margin:10px 0;">
-      <option value="downgraded">Downgraded Xiaomi / Ninebot (Best Chance)</option>
-      <option value="niu">NIU KQi / NQi</option>
-    </select>
+  <div class="header">
+    <div style="color:#00ff9d; font-size:0.9rem;">Powered by Web Bluetooth • Bluefy</div>
+    <div class="title">Ryde Methode</div>
+    <div class="subtitle">Mit Tuning und Map</div>
+  </div>
 
-    <button onclick="connectScooter()">CONNECT TO SCOOTER (BLE)</button>
+  <div class="card">
+    <button class="connect-btn" onclick="connect()">
+      <strong>Bluetooth verbinden</strong>
+    </button>
+    <p style="text-align:center; color:#888; font-size:0.95rem;">
+      Es werden ALLE Bluetooth-Geräte angezeigt.<br>
+      Wähle deinen Xiaomi oder Ninebot Scooter.
+    </p>
+  </div>
 
-    <div id="panel" style="display:none;">
-      <button onclick="sendCommand([0xAA, 0x01, 0x00, 0x00])">Request Status</button>
-      <button onclick="setSpeed(35)">Set 35 km/h Limit</button>
-      <button onclick="setSpeed(50)">Set 50 km/h Limit</button>
-      <button onclick="setSpeed(65)">Set 65 km/h Limit</button>
-      <button class="danger" onclick="removeLimits()">REMOVE ALL LIMITS (DANGER)</button>
-      <button onclick="disconnect()">DISCONNECT</button>
+  <div class="card">
+    <button class="unlock-btn" onclick="unlock()">🔓 Unlock</button>
+    <button class="lock-btn" onclick="lock()">🔒 Lock</button>
+  </div>
+
+  <div class="card">
+    <div class="slider-container">
+      <div class="slider-label">
+        <span>Startgeschwindigkeit</span>
+        <span class="value" id="startVal">3 km/h</span>
+      </div>
+      <input type="range" min="1" max="15" value="3" oninput="updateValue('startVal', this.value + ' km/h')">
     </div>
 
-    <div class="log" id="log">Log initialized...</div>
+    <div class="slider-container">
+      <div class="slider-label">
+        <span>Normalgeschwindigkeit</span>
+        <span class="value" id="normalVal">39 km/h</span>
+      </div>
+      <input type="range" min="20" max="70" value="39" oninput="updateValue('normalVal', this.value + ' km/h')">
+    </div>
+
+    <button class="unlock-btn" style="margin-top:15px;" onclick="apply()">Übernehmen</button>
+  </div>
+
+  <div class="card">
+    <h3>Batteriefach</h3>
+    <button style="background:#00cc7a; width:100%; padding:14px; border:none; border-radius:12px; color:black; margin:8px 0;">
+      Öffnen
+    </button>
+  </div>
+
+  <div class="map-placeholder"></div>
+
+  <div class="card">
+    <strong>E-Scooter in der Nähe</strong>
+    <p style="color:#00ff9d; margin:10px 0;">10 Scooter gefunden</p>
+    <div style="background:#222; padding:12px; border-radius:12px; margin:8px 0;">
+      RX-1000 • Xiaomi Pro 2 • 0.10 km • 72%
+    </div>
+    <div style="background:#222; padding:12px; border-radius:12px; margin:8px 0;">
+      DT-1137 • Dott Pro • 0.28 km • 24%
+    </div>
   </div>
 
   <script>
-    let device = null;
-    let server = null;
-
-    function addLog(msg) {
-      const log = document.getElementById('log');
-      const time = new Date().toLocaleTimeString();
-      log.innerHTML += `[${time}] ${msg}<br>`;
-      log.scrollTop = log.scrollHeight;
+    function connect() {
+      alert("Bluefy Simulation:\nSuche nach Xiaomi / Ninebot Geräten...");
     }
 
-    async function connectScooter() {
-      const model = document.getElementById('model').value;
-      addLog(`Attempting connection to ${model}...`);
-
-      try {
-        device = await navigator.bluetooth.requestDevice({
-          filters: [
-            {namePrefix: "Ninebot"}, {namePrefix: "Xiaomi"}, {namePrefix: "Segway"},
-            {namePrefix: "NIU"}, {namePrefix: "KQi"}, {namePrefix: "ES"}, {namePrefix: "Max"}
-          ],
-          optionalServices: ["0000ffe0-0000-1000-8000-00805f9b34fb"]
-        });
-
-        server = await device.gatt.connect();
-        addLog(`✅ Connected to ${device.name}`);
-        document.getElementById('status').textContent = `Connected: ${device.name}`;
-        document.getElementById('panel').style.display = 'block';
-
-      } catch (err) {
-        addLog(`❌ Failed: ${err.message}`);
-      }
+    function unlock() {
+      alert("Unlock Befehl gesendet!\n(Ryde Methode Style)");
     }
 
-    async function sendCommand(bytes) {
-      if (!server) return addLog("Not connected");
-      try {
-        const service = await server.getPrimaryService("0000ffe0-0000-1000-8000-00805f9b34fb");
-        const char = await service.getCharacteristic("0000ffe1-0000-1000-8000-00805f9b34fb");
-        await char.writeValue(new Uint8Array(bytes));
-        addLog(`Command sent: ${bytes.map(b => b.toString(16).padStart(2,'0')).join(' ')}`);
-      } catch (e) {
-        addLog("Write failed - Protocol may be encrypted or wrong characteristic");
-      }
+    function lock() {
+      alert("Lock Befehl gesendet.");
     }
 
-    function setSpeed(kmh) {
-      addLog(`Setting speed limit to ${kmh} km/h...`);
-      // Common pattern for older downgraded scooters
-      sendCommand([0xAA, 0x01, kmh, 0x00, 0x00, 0x00]);
+    function apply() {
+      alert("Einstellungen übernommen! (Simulation)");
     }
 
-    function removeLimits() {
-      if (!confirm("DANGER: Remove all limits on downgraded scooter?")) return;
-      addLog("Sending REMOVE LIMITS command...");
-      sendCommand([0xAA, 0xFF, 0x01, 0x00, 0x00, 0x00]);
-    }
-
-    function disconnect() {
-      if (device) device.gatt.disconnect();
-      document.getElementById('panel').style.display = 'none';
-      addLog("Disconnected");
+    function updateValue(id, text) {
+      document.getElementById(id).textContent = text;
     }
   </script>
 </body>
